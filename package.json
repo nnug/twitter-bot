@@ -1,0 +1,19 @@
+{
+  "name": "sirarsmobileservice",
+  "version": "1.0.0",
+  "description": "sirarsmobileservice - hosted on Windows Azure Mobile Services",
+  "main": "server.js",
+  "engines": {
+    "node": ">= 0.8.19"
+  },
+  "dependencies": {
+  "xhr2": "*",
+	"request": "^2.55.0",
+	"codebird": "^2.6.0"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "author": "unknown",
+  "licenses": [],
+  "keywords":[]
+}
