@@ -15,17 +15,38 @@ var nnugKristiansand = "https://api.meetup.com/2/events?offset=0&format=json&lim
 var nnugVestfold = "https://api.meetup.com/2/events?offset=0&format=json&limited_events=False&group_urlname=NNUG-Vestfold&photo-host=public&page=20&fields=&order=time&desc=false&status=upcoming&sig_id=35617582&sig=11f4f19030543510b03c5cdfb6e7a11eeddab5f1";
 var nnugHaugesund = "https://api.meetup.com/2/events?offset=0&format=json&limited_events=False&group_urlname=NNUG-Haugesund&photo-host=public&page=20&fields=&order=time&desc=false&status=upcoming&sig_id=35617582&sig=9c573e9f576217c29c2258525548e9f5371fd282";
 
+//The vimeo videos URL, the "per_page" parameter determines the max, sorted by date descending
+var nnugVimeo = "https://api.vimeo.com/users/nnug/videos?per_page=10&sort=date&direction=desc&access_token="+config.appSettings.NNUG_VIMEO_ACCESS_TOKEN;
+
 function nnug_twitter_bot() {
 
-requestDataAndTweetFor(nnugOslo);
-requestDataAndTweetFor(nnugBergen);
-requestDataAndTweetFor(nnugStavanger);
-requestDataAndTweetFor(nnugTrondheim);
-requestDataAndTweetFor(nnugKristiansand);
-requestDataAndTweetFor(nnugVestfold);
-requestDataAndTweetFor(nnugHaugesund);
+    requestDataFromMeetupAndTweetFor(nnugOslo);
+    requestDataFromMeetupAndTweetFor(nnugBergen);
+    requestDataFromMeetupAndTweetFor(nnugStavanger);
+    requestDataFromMeetupAndTweetFor(nnugTrondheim);
+    requestDataFromMeetupAndTweetFor(nnugKristiansand);
+    requestDataFromMeetupAndTweetFor(nnugVestfold);
+    requestDataFromMeetupAndTweetFor(nnugHaugesund);
+    requestDataFromVimeoAndTweetFor(nnugVimeo);
 
-function requestDataAndTweetFor(userGroup) {
+    function requestDataFromVimeoAndTweetFor(vimeoChannel) {
+        request(vimeoChannel, function(error, response, body){
+            var json = JSON.parse(body);
+            if (!error && response.statusCode == 200) {
+                for(var i = 0; i < json.data.length; i++) {
+                    var dateCreated = json.data[i].created_time;                    
+                    var name = json.data[i].name;
+                    var videoUrl = json.data[i].link;
+                    var message = buildMessageForVimeo(name, videoUrl);
+                    if(getDaysInBetween(new Date(), new Date(json.data[i].created_time)) == -1) {                
+                        tweet(message);
+                    }
+                }
+            }
+        });
+    }
+
+    function requestDataFromMeetupAndTweetFor(userGroup) {
         request(userGroup, function(error, response, body){
             var json = JSON.parse(body);
             if (!error && response.statusCode == 200) {
@@ -35,7 +56,7 @@ function requestDataAndTweetFor(userGroup) {
                     var name = json.results[i].name;
                     var eventUrl = json.results[i].event_url;
                     var groupUrlName = json.results[i].group.urlname;
-                    var message = buildMessage(name, date, eventUrl, groupUrlName);
+                    var message = buildMessageForMeetup(name, date, eventUrl, groupUrlName);
     
                     if(getDaysInBetween(new Date(), dateCreated) == -1) {                
                         tweet(message);
@@ -44,11 +65,11 @@ function requestDataAndTweetFor(userGroup) {
     
                     switch(getDaysInBetween(new Date(), date)){
                         case 7:
-                            message = buildMessage(name, "1 week left", eventUrl, groupUrlName);
+                            message = buildMessageForMeetup(name, "1 week left", eventUrl, groupUrlName);
                             tweet(message);
                             break;
                         case 1:
-                            message = buildMessage(name, "tomorrow", eventUrl, groupUrlName);
+                            message = buildMessageForMeetup(name, "tomorrow", eventUrl, groupUrlName);
                             tweet(message);
                             break;
                     }
@@ -57,7 +78,17 @@ function requestDataAndTweetFor(userGroup) {
         });
     }
     
-    function buildMessage(name, date, eventUrl, groupUrlName) {
+    function buildMessageForVimeo(name, videoUrl) {
+        var hashTags = "#NNUG";
+        var message = "On Vimeo: " + "\"" + name + "\"" + " " + hashTags + " " + videoUrl;        
+        if(message.length > 140) {
+            var temp = message.replace(" " + videoUrl, "");
+            return temp.replace("\"" + name + "\"", videoUrl);
+        }
+        return message;
+    }
+    
+    function buildMessageForMeetup(name, date, eventUrl, groupUrlName) {
         var eventDate = isTypeOfDate(date) ? date.getDate() + "/" + (date.getMonth()+1) : date;    
         var hashTags = "#"+groupUrlName.replace("-", "");
         var message = name + " " + eventDate + ", RSVP today! " + hashTags + " " + eventUrl;
@@ -92,4 +123,3 @@ function requestDataAndTweetFor(userGroup) {
         );
     }
 }
-
